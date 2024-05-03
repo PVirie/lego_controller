@@ -52,7 +52,9 @@ class Transport:
         self.client = BleakClient(device.address)
         self.uart_channel = UART_Channels(self.client)
 
-        self.notification_queue = asyncio.Queue()
+        self.app_notification = None
+        self.boot_notification = None
+        self.uart_notifications = [None, None, None, None]
 
 
     async def connect(self):
@@ -103,19 +105,23 @@ class Transport:
     async def _notification_handler(self, sender: BleakGATTCharacteristic, data: bytearray):
         # identify the sender
         if sender.uuid == application_characteristic_uuid:
-            await self.notification_queue.put(("application", data))
+            self.app_notification = data
         elif sender.uuid == bootloader_characteristic_uuid:
-            await self.notification_queue.put(("bootloader", data))
+            self.boot_notification = data
         elif sender.uuid in uart_characteristic_uuid:
             index = uart_characteristic_uuid.index(sender.uuid)
-            await self.notification_queue.put(("uart" + str(index), data))
+            self.uart_notifications[index] = data
         else:
             logging.error(f"Unknown sender: {sender.uuid}")
 
 
-    async def get_all_notifications(self):
-        all_notifications = []
-        while not self.notification_queue.empty():
-            all_notifications.append(await self.notification_queue.get())
-        return all_notifications
+    async def get_application_notification(self):
+        return self.app_notification
+    
+    async def get_bootloader_notification(self):
+        return self.boot_notification
+    
+    async def get_uart_notification(self, channel):
+        return self.uart_notifications[channel]
+    
         

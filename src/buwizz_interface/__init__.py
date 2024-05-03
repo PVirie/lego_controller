@@ -1,4 +1,5 @@
 from . import buwizz_3, transport
+from .buwizz_3 import Buwizz_3_Ports, Buwizz_3_PU_Modes
 
 async def scan():
     """

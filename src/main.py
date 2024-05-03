@@ -4,6 +4,7 @@ import asyncio
 import buwizz_interface as bwi
 import signal
 from datetime import datetime, timedelta
+import random
 
 async def main():
     buwizz_interface = None
@@ -21,24 +22,33 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
+    await buwizz_interface.start()
+
+    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_1, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
+    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_2, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
+    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_3, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
+    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_4, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
+
+    await buwizz_interface.set_data_refresh_rate(100)
+    
     start_time = datetime.now()
 
-
-    async for data in buwizz_interface():
-        print(data)
+    while True:
         now_time = datetime.now()
 
-        await buwizz_interface.set_powerup_motor_mode(mode='pwm')
+        status = await buwizz_interface.get_status()
+        print(status)
 
-        await buwizz_interface.set_motor_speed(0, 0.5)
-        await buwizz_interface.set_motor_speed(1, 0.5)
-        await buwizz_interface.set_motor_speed(2, 0.5)
-        await buwizz_interface.set_motor_speed(3, 0.5)
-        await buwizz_interface.set_motor_speed(4, 0.5)
-        await buwizz_interface.set_motor_speed(5, 0.5)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_1, 0)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_2, 0)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_3, 0)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_4, 0.5)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_A, 1)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_B, 1)
 
-        if now_time - start_time > timedelta(seconds=5):
+        if now_time - start_time > timedelta(seconds=10):
             await buwizz_interface.exit()
+            break
 
 
 
