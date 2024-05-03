@@ -96,6 +96,12 @@ class Buwizz_Status:
         """
 
 
+PF_SERVO_POSSIBLE_VALUES=[
+    int(-127).to_bytes(1, 'little', signed=True),
+    int(0).to_bytes(1, 'little', signed=True),
+    int(127).to_bytes(1, 'little', signed=True)
+]
+
 class Buwizz_3:
 
     def __init__(self, device):
@@ -105,6 +111,7 @@ class Buwizz_3:
         self.data_bytes = bytearray(20)
         self.status_enabled = False
 
+        self.port_current_pu_mode = [Buwizz_3_PU_Modes.PWM] * 4
         self.port_mode_bytes = bytearray(4)
         self.port_ref_bytes = bytearray(16)
 
@@ -137,7 +144,7 @@ class Buwizz_3:
 
     async def set_data_refresh_rate(self, rate):
         """
-        rate from 20*5 to 255*5 ms, (valid range: 20 - 255) in steps of 5 ms
+            rate from 20*5 to 255*5 ms, (valid range: 20 - 255) in steps of 5 ms
         """
         if rate <= 0:
             await self.transport.disable_application_notifications()
@@ -165,8 +172,17 @@ class Buwizz_3:
     async def set_powerup_motor_mode(self, port: Buwizz_3_Ports, mode:Buwizz_3_PU_Modes = Buwizz_3_PU_Modes.DEFAULT, servo_ref=0):
         # set mode to PU simple PWM (default)
         # if mode is speed or position, set servo reference convert input -1 to 1 to signed 32 bits
+        # for the SPEED POSITION and ABSOLUTE mode, only work with PU L and PU XL motors
         
         port = port.value
+        if port >= 4:
+            return
+        
+        if self.port_current_pu_mode[port] == mode:
+            return
+        
+        self.port_current_pu_mode[port] = mode
+
         if mode == Buwizz_3_PU_Modes.PWM:
             put_to_byte(self.port_mode_bytes, port, b'\x00')
         elif mode == Buwizz_3_PU_Modes.DEFAULT:
@@ -183,23 +199,22 @@ class Buwizz_3:
             ref_bytes = int(servo_ref * 2147483647).to_bytes(4, 'little', signed=True)
             put_to_byte(self.port_ref_bytes, port*4, ref_bytes)
             await self.__send_command(b'\x52', bytes(self.port_ref_bytes))
+            
 
 
     async def set_motor_speed(self, port: Buwizz_3_Ports, speed: float):
         """
-        input port: str, 1(power up), 2(power up), 3(power up), 4(power up), A(power function), B(power function)
-        speed is a float, -1.0 to 1.0
+            input port: str, 1(power up), 2(power up), 3(power up), 4(power up), A(power function), B(power function)
+            speed is a float, -1.0 to 1.0
         """
         port = port.value
 
         if port < 4:
             """
-                bytes 1-16 is power up motors port 0 to 3, signed 32-bits for each
+                bytes 1-16 is power up motors port 0 to 3, signed 32-bits for each, but we only use 8 bits: [-127, 128]
             """
-            # interpolate speed to int 32 bits -1 is min int value, 1 is max int value
-            # put_to_byte(self.data_bytes, 4 * port, int(speed * 2147483647).to_bytes(4, 'little', signed=True))
+            self.set_powerup_motor_mode(port, Buwizz_3_PU_Modes.DEFAULT)
             put_to_byte(self.data_bytes, 4 * port, int(speed * 127).to_bytes(4, 'little', signed=True))
-            # put_to_byte(self.data_bytes, 4 * port, struct.pack('<f', speed))
         elif port < 6:
             """
                 bytes 17-18 is power function motors port 4 and 5, signed 8-bits for each
@@ -214,12 +229,39 @@ class Buwizz_3:
         await self.__send_command(b'\x31', bytes(self.data_bytes))
 
 
+    async def set_motor_angle(self, port: Buwizz_3_Ports, angle: float):
+        """
+            input port: str, 1(power up), 2(power up), 3(power up), 4(power up), A(power function), B(power function)
+            speed is a float, -90.0 to 90.0
+        """
+        port = port.value
+
+
+        if port < 4:
+            """
+                bytes 1-16 is power up motors port 0 to 3, signed 32-bits for each
+            """
+            self.set_powerup_motor_mode(port, Buwizz_3_PU_Modes.ABSOLUTE)
+            # interpolate speed to int 32 bits -1 is min int value, 1 is max int value
+            put_to_byte(self.data_bytes, 4 * port, int((angle / 90) * 2147483647).to_bytes(4, 'little', signed=True))
+        elif port < 6:
+            """
+                bytes 17-18 is power function motors port 4 and 5, signed 8-bits for each
+                    0x81 (-127): PF servo left 
+                    0x00 (0): PF servo center
+                    0x7F (127): PF servo right
+                    Do not use in between values, as the servo will not move
+            """
+            put_to_byte(self.data_bytes, 16 + (port - 4), PF_SERVO_POSSIBLE_VALUES[min(max(round(angle / 90), -1), 1) + 1])
+
+        # convert bytearray to bytes
+        await self.__send_command(b'\x31', bytes(self.data_bytes))
+
 
     async def break_motors(self, port):
         """
-        input port: int, 0-5
-        byte 19 Brake flags - bit mapped to bits 5-0 (1 bit per each motor, bit 0 for first motor, bit 5
-        for the last)
+            input port: int, 0-5
+            byte 19 Brake flags - bit mapped to bits 5-0 (1 bit per each motor, bit 0 for first motor, bit 5 for the last)
         """
 
 

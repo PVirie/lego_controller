@@ -23,12 +23,6 @@ async def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     await buwizz_interface.start()
-
-    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_1, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
-    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_2, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
-    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_3, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
-    await buwizz_interface.set_powerup_motor_mode(bwi.Buwizz_3_Ports.PORT_4, mode=bwi.Buwizz_3_PU_Modes.DEFAULT, servo_ref=0)
-
     await buwizz_interface.set_data_refresh_rate(100)
     
     start_time = datetime.now()
@@ -39,12 +33,14 @@ async def main():
         status = await buwizz_interface.get_status()
         print(status)
 
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_1, 0)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_2, 0)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_3, 0)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_4, 0.5)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_1, 1)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_2, 1)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_3, 1)
+        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_4, 1)
+        
         await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_A, 1)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_B, 1)
+
+        await buwizz_interface.set_motor_angle(bwi.Buwizz_3_Ports.PORT_B, -90)
 
         if now_time - start_time > timedelta(seconds=10):
             await buwizz_interface.exit()
