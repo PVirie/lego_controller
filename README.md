@@ -1,6 +1,6 @@
 # lego_controller
 
-Control buwizz 3 from work station
+Control buwizz 3 from work station.
 
 ## Description
 
@@ -17,6 +17,14 @@ pip install -r requirements.txt
 ## Life cycle
 
 1. Scan for devices
-2. Start device loop
+2. Create a device object and connect to it
 3. Operate device
-4. Exit device loop
+4. Exit device
+
+### Note
+
+-   If you want to keep the device inoperate for a long time, it is recommended to activate the shelf mode (according to Buwizz recommendataion).
+
+## Disclaimer
+
+I will not be responsible for any damage caused by using this software. Use at your own risk.

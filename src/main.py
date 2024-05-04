@@ -1,14 +1,14 @@
 import os
 import sys
 import asyncio
-import buwizz_interface as bwi
+import lego_controller as lc
 import signal
 from datetime import datetime, timedelta
 import random
 
 async def main():
     buwizz_interface = None
-    async for device in bwi.scan():        
+    async for device in lc.scan():        
         buwizz_interface = device
         break
 
@@ -33,14 +33,14 @@ async def main():
         status = await buwizz_interface.get_status()
         print(status)
 
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_1, 1)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_2, 1)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_3, 1)
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_4, 1)
+        await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_1, 1)
+        await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_2, 1)
+        await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_3, 1)
+        await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_4, 1)
         
-        await buwizz_interface.set_motor_speed(bwi.Buwizz_3_Ports.PORT_A, 1)
+        await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_A, 1)
 
-        await buwizz_interface.set_motor_angle(bwi.Buwizz_3_Ports.PORT_B, -90)
+        await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_B, -90)
 
         if now_time - start_time > timedelta(seconds=10):
             await buwizz_interface.exit()

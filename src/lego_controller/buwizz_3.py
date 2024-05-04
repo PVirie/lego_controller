@@ -269,3 +269,11 @@ class Buwizz_3:
         self.data_bytes[19] = 1 << port
 
         await self.__send_command(b'\x31', bytes(self.data_bytes))
+
+
+
+    async def activate_shelf_mode(self):
+        """
+            For long term hibernation, the operator will have to connect charger to wake up the device. 
+        """
+        await self.transport.set_application(b'\xA1')
