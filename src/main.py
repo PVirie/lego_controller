@@ -25,8 +25,8 @@ async def main():
     await buwizz_interface.start()
     await buwizz_interface.set_data_refresh_rate(100)
     
-    await buwizz_interface.set_powerup_motor_mode(lc.Buwizz_3_Ports.PORT_1, lc.Buwizz_3_PU_Modes.POSITION, 45)
-    await buwizz_interface.set_powerup_motor_mode(lc.Buwizz_3_Ports.PORT_2, lc.Buwizz_3_PU_Modes.POSITION, 45)
+    await buwizz_interface.set_powerup_motor_mode(lc.Buwizz_3_Ports.PORT_1, lc.Buwizz_3_PU_Modes.POSITION, 0)
+    await buwizz_interface.set_powerup_motor_mode(lc.Buwizz_3_Ports.PORT_2, lc.Buwizz_3_PU_Modes.POSITION, -90)
 
     start_time = datetime.now()
     while True:
@@ -36,18 +36,18 @@ async def main():
         print(status)
 
         # Power up servo modes
-        await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_1, 0)
-        await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_2, 0)
+        await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_1, 1)
+        await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_2, -1)
 
         # Power up speed modes
-        # await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_3, 1)
-        # await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_4, -1)
+        await buwizz_interface.set_motor_velocity(lc.Buwizz_3_Ports.PORT_3, 1)
+        await buwizz_interface.set_motor_velocity(lc.Buwizz_3_Ports.PORT_4, -1)
         
-        # Power function speed modes
-        # await buwizz_interface.set_motor_speed(lc.Buwizz_3_Ports.PORT_A, 1)
-
         # Power function servo modes
-        # await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_B, -90)
+        await buwizz_interface.set_motor_angle(lc.Buwizz_3_Ports.PORT_A, -90)
+
+        # Power function speed modes
+        await buwizz_interface.set_motor_velocity(lc.Buwizz_3_Ports.PORT_B, 1)
 
 
         if now_time - start_time > timedelta(seconds=10):

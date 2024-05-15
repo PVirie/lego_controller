@@ -35,19 +35,31 @@ class Buwizz_3_Group_Modes(int, enum.Enum):
 
 
 class Powerup_Motor_Status:
-    def __init__(self, status_bytes):
+    def __init__(self, status_bytes, offset, mode):
         # Motor type (unsigned 8-bit),  
         # Velocity (signed 8-bit), 
         # Absolute position (unsigned 16-bit), 
         # Position (unsigned 32-bit) 
 
         self.motor_type = status_bytes[0]
-        self.velocity = status_bytes[1]
-        self.abs_position = int.from_bytes(status_bytes[2:4], 'little')
-        self.position = int.from_bytes(status_bytes[4:8], 'little')
+
+        raw_speed = status_bytes[1]
+        raw_abs_position = int.from_bytes(status_bytes[2:4], 'little')
+        raw_position = int.from_bytes(status_bytes[4:8], 'little')
+        
+        self.abs_position = raw_abs_position
+        if mode == Buwizz_3_PU_Modes.POSITION:
+            self.position = raw_abs_position + offset
+        else:
+            self.position = raw_abs_position
+        
+        if mode == Buwizz_3_PU_Modes.SPEED:
+            self.speed = raw_speed / 131 + offset
+        else:
+            self.speed = raw_speed / 131
 
 class Buwizz_Status:
-    def __init__(self, status_bytes):
+    def __init__(self, status_bytes, port_value_offsets, port_modes):
         # status byte is byte 1
 
         status_byte = status_bytes[1]
@@ -74,10 +86,10 @@ class Buwizz_Status:
 
         # bytes 22-53
         self.powerup_motor_statuses = [
-            Powerup_Motor_Status(status_bytes[22:30]),
-            Powerup_Motor_Status(status_bytes[30:38]),
-            Powerup_Motor_Status(status_bytes[38:46]),
-            Powerup_Motor_Status(status_bytes[46:54])
+            Powerup_Motor_Status(status_bytes[22:30], port_value_offsets[0], port_modes[0]),
+            Powerup_Motor_Status(status_bytes[30:38], port_value_offsets[1], port_modes[1]),
+            Powerup_Motor_Status(status_bytes[38:46], port_value_offsets[2], port_modes[2]),
+            Powerup_Motor_Status(status_bytes[46:54], port_value_offsets[3], port_modes[3])
         ]
 
     def __str__(self):
@@ -114,15 +126,16 @@ class Buwizz_3:
     def __init__(self, device):
         self.transport = transport.Transport(device)
 
-        # create empty bytes of 20 bytes (command byte will be added later)
+        # create empty bytes (command byte will be added later)
         self.data_bytes = bytearray(20)
-        self.status_enabled = False
-
-        self.port_current_pu_mode = [0] * 4 # NO MODE
         self.port_mode_bytes = bytearray(4)
-        self.port_ref_bytes = bytearray(16)
-
         self.port_PID_status_enable_bytes = bytearray(4)
+
+        self.status_enabled = False
+        self.port_current_pu_mode = [0] * 4 # NO MODE
+        self.port_base_value = [0] * 4
+        
+
 
     async def exit(self):
         await self.transport.disconnect()
@@ -141,7 +154,7 @@ class Buwizz_3:
         if app_noti is None:
             return None
         
-        return Buwizz_Status(app_noti)
+        return Buwizz_Status(app_noti, self.port_base_value, self.port_current_pu_mode)
 
 
     async def __send_command(self, command, data):
@@ -210,27 +223,23 @@ class Buwizz_3:
         elif mode == Buwizz_3_PU_Modes.SPEED:
             put_to_byte(self.port_mode_bytes, port, b'\x14')
         elif mode == Buwizz_3_PU_Modes.POSITION:
-            put_to_byte(self.port_mode_bytes, port, b'\x15')
+            # I override buwizz absolute position with mine
+            # put_to_byte(self.port_mode_bytes, port, b'\x15')
+            put_to_byte(self.port_mode_bytes, port, b'\x16')
         elif mode == Buwizz_3_PU_Modes.ABSOLUTE:
             put_to_byte(self.port_mode_bytes, port, b'\x16')
 
         await self.__send_command(b'\x50', bytes(self.port_mode_bytes))
         if mode == Buwizz_3_PU_Modes.POSITION:
-            ref_bytes = int(servo_ref).to_bytes(4, 'little', signed=True)
-            put_to_byte(self.port_ref_bytes, port*4, ref_bytes)
-            await self.__send_command(b'\x52', bytes(self.port_ref_bytes))
+            self.port_base_value[port] = servo_ref
         elif mode == Buwizz_3_PU_Modes.SPEED:
-            speed_raw = min(max(int((servo_ref + 1) * 255 / 2 - 127), -127), 127)
-            ref_bytes = int(speed_raw).to_bytes(4, 'little', signed=True)
-            put_to_byte(self.port_ref_bytes, port*4, ref_bytes)
-            await self.__send_command(b'\x52', bytes(self.port_ref_bytes))
+            self.port_base_value[port] = servo_ref
             
 
-
-    async def set_motor_speed(self, port: Buwizz_3_Ports, speed: float):
+    async def set_motor_velocity(self, port: Buwizz_3_Ports, velocity: float):
         """
             input port: str, 1(power up), 2(power up), 3(power up), 4(power up), A(power function), B(power function)
-            speed is a float, -1.0 to 1.0
+            velocity is a float, -1.0 to 1.0
         """
 
         if port < 4:
@@ -239,7 +248,10 @@ class Buwizz_3:
             """
             await self.set_powerup_motor_mode(port, Buwizz_3_Group_Modes.MOTOR)
 
-            speed_raw = min(max(int((speed + 1) * 255 / 2 - 127), -127), 127)
+            if self.port_current_pu_mode[port] == Buwizz_3_PU_Modes.POSITION:
+                velocity = velocity - self.port_base_value[port]
+
+            speed_raw = min(max(int((velocity + 1) * 255 / 2 - 127), -127), 127)
             put_to_byte(self.data_bytes, 4 * port, speed_raw.to_bytes(4, 'little', signed=True))
         elif port < 6:
             """
@@ -249,7 +261,7 @@ class Buwizz_3:
                     0x7F (127): Full forwards
             """
             
-            speed_raw = min(max(int((speed + 1) * 255 / 2 - 127), -127), 127)
+            speed_raw = min(max(int((velocity + 1) * 255 / 2 - 127), -127), 127)
             put_to_byte(self.data_bytes, 16 + (port - 4), speed_raw.to_bytes(1, 'little', signed=True))
 
         # convert bytearray to bytes
@@ -268,6 +280,9 @@ class Buwizz_3:
                 bytes 1-16 is power up motors port 0 to 3, signed 32-bits for each
             """
             await self.set_powerup_motor_mode(port, Buwizz_3_Group_Modes.SERVO)
+
+            if self.port_current_pu_mode[port] == Buwizz_3_PU_Modes.POSITION:
+                angle = angle - self.port_base_value[port]
 
             put_to_byte(self.data_bytes, 4 * port, int(angle).to_bytes(4, 'little', signed=True))
         elif port < 6:
