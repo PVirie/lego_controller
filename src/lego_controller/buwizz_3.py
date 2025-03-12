@@ -299,7 +299,7 @@ class Buwizz_3:
         await self.__send_command(b'\x31', bytes(self.data_bytes))
 
 
-    async def break_motors(self, port):
+    async def brake_motors(self, port):
         """
             input port: int, 0-5
             byte 19 Brake flags - bit mapped to bits 5-0 (1 bit per each motor, bit 0 for first motor, bit 5 for the last)
