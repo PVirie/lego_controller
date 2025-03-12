@@ -28,6 +28,9 @@ pip install -r requirements.txt
 sudo .venv/bin/python src/main.py
 ```
 
+4. to exit, press and **hold** the escape button.
+5. to exit and enter the shelf mode, press and **hold** the F12.
+
 ## Life cycle
 
 1. Scan for devices

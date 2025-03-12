@@ -3,6 +3,7 @@ import enum
 from typing import Union
 import logging
 import struct
+from time import time
 
 def put_to_byte(bytes, start, value):
     """
@@ -59,7 +60,7 @@ class Powerup_Motor_Status:
             self.speed = raw_speed / 131
 
 class Buwizz_Status:
-    def __init__(self, status_bytes, port_value_offsets, port_modes):
+    def __init__(self, status_bytes, port_value_offsets, port_modes, fps):
         # status byte is byte 1
 
         status_byte = status_bytes[1]
@@ -92,8 +93,11 @@ class Buwizz_Status:
             Powerup_Motor_Status(status_bytes[46:54], port_value_offsets[3], port_modes[3])
         ]
 
+        self.fps = fps
+
     def __str__(self):
         return f"""
+        FPS: {self.fps}
         Error: {self.error}
         Motion Wakeup Enable: {self.motion_wakeup_enable}
         BLE Longrange Enable: {self.ble_longrange_enable}
@@ -123,7 +127,7 @@ PF_SERVO_POSSIBLE_VALUES=[
 
 class Buwizz_3:
 
-    def __init__(self, device):
+    def __init__(self, device, fps_alpha=0.90):
         self.transport = transport.Transport(device)
 
         # create empty bytes (command byte will be added later)
@@ -134,6 +138,10 @@ class Buwizz_3:
         self.status_enabled = False
         self.port_current_pu_mode = [0] * 4 # NO MODE
         self.port_base_value = [0] * 4
+
+        self.last_stamp = time()
+        self.fps_alpha = fps_alpha
+        self.last_fps = 0
         
 
 
@@ -154,7 +162,12 @@ class Buwizz_3:
         if app_noti is None:
             return None
         
-        return Buwizz_Status(app_noti, self.port_base_value, self.port_current_pu_mode)
+        now = time()
+        time_since_last = now - self.last_stamp
+        self.last_stamp = now
+        self.last_fps = self.fps_alpha * self.last_fps + (1 - self.fps_alpha) * (1 / time_since_last)
+
+        return Buwizz_Status(app_noti, self.port_base_value, self.port_current_pu_mode, self.last_fps)
 
 
     async def __send_command(self, command, data):
