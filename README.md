@@ -10,8 +10,22 @@ The project is implemented following [protocol version 3.22](https://buwizz.com/
 
 ## Installation
 
+1. set up virtual environment
+
+```bash
+python3 -m venv .venv
+```
+
+2. install requirements
+
 ```bash
 pip install -r requirements.txt
+```
+
+3. run the program
+
+```bash
+sudo .venv/bin/python src/main.py
 ```
 
 ## Life cycle
