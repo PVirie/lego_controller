@@ -10,26 +10,48 @@ The project is implemented following [protocol version 3.22](https://buwizz.com/
 
 ## Installation
 
+0. Plug in motor(s) to the Buwizz 3 controller.
+   And make sure your device is on and ready to pair (LED blinking)
+
 1. set up virtual environment
 
 ```bash
 python3 -m venv .venv
 ```
 
-2. install requirements
+2. activate virtual environment
+
+```bash
+source .venv/bin/activate
+```
+
+or on Windows
+
+```
+.venv\Scripts\activate
+```
+
+3. install requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. run the program
+4. run the program
 
 ```bash
 sudo .venv/bin/python src/main.py
 ```
 
-4. to exit, press and **hold** the escape button.
-5. to exit and enter the shelf mode, press and **hold** the F12.
+or on Windows simpy run
+
+```bash
+py src/main.py
+```
+
+5. use w/a/s/d to control motors 1 and 2.
+6. to exit, press and **hold** the escape button.
+7. to exit and enter the shelf mode, press and **hold** the F12.
 
 ## Life cycle
 

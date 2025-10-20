@@ -8,13 +8,15 @@ from async_property import async_property
 BUWIZZ_3_UUID = "500592d1-74fb-4481-88b3-9919b1676e93"
 
 async def scan(seconds=5):
-    devices = await BleakScanner.discover(seconds)
-    for d in devices:
-        metadata_dict = d.metadata
-        if "uuids" in metadata_dict and BUWIZZ_3_UUID in metadata_dict["uuids"]:
+    devices = await BleakScanner.discover(seconds, return_adv=True)
+    for _, device_adv in devices.items():
+        d = device_adv[0]
+        adv = device_adv[1]
+        # check uuid
+        if BUWIZZ_3_UUID.lower() in [u.lower() for u in adv.service_uuids]:
             yield d
         else:
-            logging.info(f"Unknown device: {metadata_dict}")
+            logging.info(f"Unknown device: {d}")
 
 """
 Application char UUID 0x2901 Write + Notify
